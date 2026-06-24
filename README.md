@@ -10,6 +10,7 @@
 ## 1. DQE 전체 시스템 아키텍처 (System Architecture)
 
 DQE 엔진은 LLM 모델의 의존성을 분리하기 위해 **Provider 패턴(Adapter Pattern)**을 적용하여 설계되었습니다. 이를 통해 코드 수정 없이 설정 파일 변경만으로 로컬 LLM(nano-vllm)과 클라우드 LLM API를 상호 전환할 수 있습니다.
+# System Architecture
 
 ```mermaid
 flowchart TD
@@ -22,18 +23,18 @@ flowchart TD
         Orchestrator{Agent Orchestrator}
         DialogMgr[Multi-turn 대화 상태 관리자]
         Memory[세션 메모리 캐시]
-        
+
         Orchestrator <--> DialogMgr
         DialogMgr <--> Memory
     end
 
     subgraph LLM_Abstractions [3. LLM 어댑터 레이어]
         LLMProvider[LLM Provider Factory]
-        BaseLLM[<< Abstract >> BaseLLMProvider]
-        
+        BaseLLM["<< Abstract >> BaseLLMProvider"]
+
         CloudLLM[Cloud API Provider: Gemini/Claude]
         LocalLLM[Local LLM Provider: nano-vllm CUDA]
-        
+
         LLMProvider --> BaseLLM
         BaseLLM <|-- CloudLLM
         BaseLLM <|-- LocalLLM
@@ -44,18 +45,18 @@ flowchart TD
         Text2SQL[Text-to-SQL 에이전트]
         RAGAgent[RAG 지식 검색 에이전트]
         OKFParser[OKF 파서 / 메타 로더]
-        
+
         SQLite[(POC DB: SQLite)]
         VDB[(벡터 데이터베이스)]
         OKF_Store[(OKF 지식 파일저장소)]
-        
+
         Text2SQL <--> SQLite
         RAGAgent <--> VDB
         OKFParser -->|Metadata Feed| Text2SQL
         OKFParser -->|Embeddings Feed| VDB
         OKF_Store --> OKFParser
     end
-    
+
     Client_Interface <--> Orchestrator
 ```
 
