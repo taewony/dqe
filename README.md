@@ -14,50 +14,56 @@ DQE 엔진은 LLM 모델의 의존성을 분리하기 위해 **Provider 패턴(A
 
 ```mermaid
 flowchart TD
-    subgraph Client_Interface [1. 인터페이스 레이어]
-        UI([Web Dashboard / Chat UI])
-        CLI([CLI Test Client])
-    end
 
-    subgraph Agent_Core [2. 에이전트 핵심 레이어]
-        Orchestrator{Agent Orchestrator}
-        DialogMgr[Multi-turn 대화 상태 관리자]
-        Memory[세션 메모리 캐시]
+subgraph Client_Interface
+    UI([Web Dashboard])
+    CLI([CLI Test Client])
+end
 
-        Orchestrator <--> DialogMgr
-        DialogMgr <--> Memory
-    end
+subgraph Agent_Core
+    Orchestrator{Agent Orchestrator}
+    DialogMgr[Dialog Manager]
+    Memory[Session Memory]
 
-    subgraph LLM_Abstractions [3. LLM 어댑터 레이어]
-        LLMProvider[LLM Provider Factory]
-        BaseLLM["<< Abstract >> BaseLLMProvider"]
+    Orchestrator <--> DialogMgr
+    DialogMgr <--> Memory
+end
 
-        CloudLLM[Cloud API Provider: Gemini/Claude]
-        LocalLLM[Local LLM Provider: nano-vllm CUDA]
+subgraph LLM_Abstractions
+    LLMProvider[LLM Provider Factory]
 
-        LLMProvider --> BaseLLM
-        BaseLLM <|-- CloudLLM
-        BaseLLM <|-- LocalLLM
-        Orchestrator <--> LLMProvider
-    end
+    BaseLLM["Abstract BaseLLMProvider"]
 
-    subgraph Data_Services [4. 데이터 및 지식 레이어]
-        Text2SQL[Text-to-SQL 에이전트]
-        RAGAgent[RAG 지식 검색 에이전트]
-        OKFParser[OKF 파서 / 메타 로더]
+    CloudLLM[Cloud API Provider]
+    LocalLLM[Local LLM Provider]
 
-        SQLite[(POC DB: SQLite)]
-        VDB[(벡터 데이터베이스)]
-        OKF_Store[(OKF 지식 파일저장소)]
+    LLMProvider --> BaseLLM
+    BaseLLM --> CloudLLM
+    BaseLLM --> LocalLLM
 
-        Text2SQL <--> SQLite
-        RAGAgent <--> VDB
-        OKFParser -->|Metadata Feed| Text2SQL
-        OKFParser -->|Embeddings Feed| VDB
-        OKF_Store --> OKFParser
-    end
+    Orchestrator <--> LLMProvider
+end
 
-    Client_Interface <--> Orchestrator
+subgraph Data_Services
+    Text2SQL[Text-to-SQL Agent]
+    RAGAgent[RAG Agent]
+    OKFParser[OKF Parser]
+
+    SQLite[(SQLite)]
+    VDB[(Vector DB)]
+    OKFStore[(OKF Storage)]
+
+    Text2SQL <--> SQLite
+    RAGAgent <--> VDB
+
+    OKFParser --> Text2SQL
+    OKFParser --> VDB
+
+    OKFStore --> OKFParser
+end
+
+UI <--> Orchestrator
+CLI <--> Orchestrator
 ```
 
 ---
