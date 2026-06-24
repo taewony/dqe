@@ -1,10 +1,8 @@
-# Knowledge Query Engine (KQE)
+# Data and knowledge Query Engine (DQE)
 
 > A Semantic Knowledge Operating System for Structured Data, Documents, and Agentic Query Execution
 
-KQE(Knowledge Query Engine)는 단순한 RAG 시스템이나 Text-to-SQL 엔진이 아니다.
-
-KQE는 사용자의 자연어 질문을 해석하여
+DQE(Data and Knowledge Query Engine)는 사용자의 자연어 질문을 해석하여
 
 * 정형 데이터베이스(SQL)
 * 비정형 문서(RAG)
@@ -17,104 +15,195 @@ Agent 기반 Query Planning 과정을 통해 최종 답변을 생성하는 Knowl
 
 ---
 
-# Vision
+> Semantic Query Engine for Structured Data, Documents, and Knowledge Catalogs
 
-기존 시스템은 데이터를 저장한다.
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)]()
+[![Python](https://img.shields.io/badge/python-3.11+-green.svg)]()
+[![SQLite](https://img.shields.io/badge/database-SQLite-blue.svg)]()
+[![LLM](https://img.shields.io/badge/LLM-Qwen%20%7C%20Gemini%20%7C%20Claude-orange.svg)]()
 
-KQE는 의미(Semantics)를 저장한다.
+---
+
+# Why DQE?
+
+Most AI systems today fall into one of two categories:
+
+1. Text-to-SQL
+2. RAG (Retrieval-Augmented Generation)
+
+Both approaches are useful.
+
+However neither understands business meaning.
+
+Users ask:
+
+> Show me VIP customer growth this year.
+
+But databases only know:
+
+```sql
+customers.total_purchase
+````
+
+The missing layer is semantics.
+
+DQE introduces a Semantic Knowledge Layer between user questions and data sources.
 
 ```text
-Traditional BI
+User Question
 
-User
- ↓
-SQL
- ↓
-Database
+↓
 
---------------------------------
+Knowledge Catalog
 
-Knowledge Query Engine
+↓
 
-User
- ↓
-Semantic Catalog
- ↓
 Query Planner
- ↓
+
+↓
+
 Execution Graph
- ↓
-Data Sources
- ↓
+
+↓
+
+SQL + Documents
+
+↓
+
 Answer
 ```
 
 ---
 
-# Core Design Principles
+# Architecture Overview
 
-## 1. Semantic First
+```mermaid
+flowchart TD
 
-사용자는
+USER["User"]
 
-"orders.customer_id"
+CAT["Knowledge Catalog"]
 
-를 알 필요가 없다.
+PLAN["Query Planner"]
 
-대신
+SQL["SQL Agent"]
 
-"VIP 고객"
+RAG["RAG Agent"]
 
-"최근 3개월 구매액"
+SYN["Response Synthesizer"]
 
-"재구매율"
+DB[("SQLite")]
+VDB[("Vector Database")]
 
-같은 비즈니스 의미를 사용한다.
+USER --> CAT
 
-KQE는 이를 Knowledge Catalog를 통해 해석한다.
+CAT --> PLAN
 
----
+PLAN --> SQL
+PLAN --> RAG
 
-## 2. Agentic Query Planning
+SQL --> DB
+RAG --> VDB
 
-질문을 즉시 SQL로 변환하지 않는다.
+SQL --> SYN
+RAG --> SYN
 
-먼저 실행 계획(Query Plan)을 생성한다.
-
-예:
-
-질문
-
-"최근 매출과 매출 계산 기준을 알려줘"
-
-실행계획
-
-```yaml
-plan:
-
-  - sql:
-      metric: monthly_sales
-
-  - rag:
-      document: sales_kpi
-
-  - synthesize:
-      combine
+SYN --> USER
 ```
 
 ---
 
-## 3. Unified Knowledge Layer
+# Core Concepts
 
-SQL
+## Knowledge Catalog
 
-RAG
+A Knowledge Catalog translates business concepts into executable data definitions.
 
-Business Rules
+Example:
 
-Glossary
+```yaml
+entity: Customer
 
-를 하나의 Semantic Layer로 통합한다.
+metrics:
+
+  vip_customer:
+    definition: total_purchase > 1000000
+
+  active_customer:
+    definition: order_count > 3
+```
+
+Users ask:
+
+```text
+Show VIP customers
+```
+
+The system understands:
+
+```sql
+total_purchase > 1000000
+```
+
+---
+
+## Query Planner
+
+Instead of generating SQL directly:
+
+```text
+Question
+
+↓
+
+Plan
+
+↓
+
+Execute
+
+↓
+
+Answer
+```
+
+DQE first generates an execution plan.
+
+Example:
+
+```yaml
+plan:
+
+  - load_metric_definition
+
+  - generate_sql
+
+  - retrieve_documents
+
+  - calculate_growth_rate
+
+  - synthesize_answer
+```
+
+---
+
+## Multi-Hop Query Execution
+
+Complex questions require multiple reasoning steps.
+
+Example:
+
+Question:
+
+> Compare this year's VIP customer growth against last year.
+
+Execution:
+
+1. Load VIP definition
+2. Query 2025 customer count
+3. Query 2026 customer count
+4. Calculate growth rate
+5. Generate explanation
 
 ---
 
@@ -123,270 +212,158 @@ Glossary
 ```mermaid
 flowchart TD
 
-subgraph Client_Interface
+subgraph Client
 
-    UI[Web Dashboard]
+UI["Web Dashboard"]
 
-    CLI[CLI Client]
-
-end
-
-subgraph Agent_Core
-
-    Orchestrator[Agent Orchestrator]
-
-    Planner[Query Planner]
-
-    Synthesizer[Response Synthesizer]
-
-    Memory[Session Memory]
+CLI["CLI"]
 
 end
 
-subgraph Knowledge_Layer
+subgraph AgentCore
 
-    Catalog[Knowledge Catalog]
+ORCH["Agent Orchestrator"]
 
-    Rules[Business Rules]
+PLAN["Query Planner"]
 
-    Glossary[Domain Glossary]
+MEM["Session Memory"]
+
+SYN["Response Synthesizer"]
 
 end
 
-subgraph Data_Services
+subgraph Knowledge
 
-    SQLAgent[Text-to-SQL Agent]
+CAT["Knowledge Catalog"]
 
-    RAGAgent[RAG Retrieval Agent]
+RULE["Business Rules"]
+
+GLOSS["Glossary"]
+
+end
+
+subgraph Retrieval
+
+SQL["SQL Agent"]
+
+RAG["RAG Agent"]
 
 end
 
 subgraph Storage
 
-    SQLite[(SQLite)]
+DB[("SQLite")]
 
-    VectorDB[(Vector DB)]
+VDB[("Vector DB")]
 
-    OKF[(OKF Repository)]
+OKF[("OKF Repository")]
 
 end
 
-UI --> Orchestrator
+UI --> ORCH
 
-CLI --> Orchestrator
+CLI --> ORCH
 
-Orchestrator --> Planner
+ORCH --> PLAN
 
-Planner --> Catalog
+PLAN --> CAT
 
-Planner --> SQLAgent
+PLAN --> SQL
 
-Planner --> RAGAgent
+PLAN --> RAG
 
-SQLAgent --> SQLite
+CAT --> OKF
 
-RAGAgent --> VectorDB
+RULE --> OKF
 
-Catalog --> OKF
+GLOSS --> OKF
 
-Rules --> OKF
+SQL --> DB
 
-Glossary --> OKF
+RAG --> VDB
 
-SQLAgent --> Synthesizer
+SQL --> SYN
 
-RAGAgent --> Synthesizer
-
-Synthesizer --> UI
+RAG --> SYN
 ```
 
 ---
 
-# Knowledge Flow Architecture
-
-```mermaid
-flowchart LR
-
-Question
-
-Question --> Intent
-
-Intent --> Catalog
-
-Catalog --> Plan
-
-Plan --> SQL
-
-Plan --> RAG
-
-SQL --> Results
-
-RAG --> Results
-
-Results --> Synthesis
-
-Synthesis --> Answer
-```
-
----
-
-# Knowledge Catalog
-
-Knowledge Catalog는 프로젝트의 핵심 구성 요소이다.
-
-Catalog는 데이터베이스 스키마를 비즈니스 의미로 변환한다.
-
-예:
-
-```yaml
-entity: Customer
-
-description: 고객
-
-columns:
-
-  customer_id:
-    meaning: 고객 식별자
-
-  total_purchase:
-    meaning: 누적 구매 금액
-
-metrics:
-
-  vip_customer:
-
-    definition: total_purchase > 1000000
-
-  active_customer:
-
-    definition: order_count > 3
-```
-
-사용자는
-
-"VIP 고객"
-
-이라고 질문하고
-
-시스템은
-
-```sql
-total_purchase > 1000000
-```
-
-를 자동으로 이해한다.
-
----
-
-# Query Planning Engine
-
-Planner는 질문을 실행 가능한 Graph로 변환한다.
-
-예:
-
-질문
-
-"올해 VIP 고객 증가율은?"
-
-실행계획
-
-```yaml
-steps:
-
-  - load_vip_definition
-
-  - query_2025_vip_count
-
-  - query_2026_vip_count
-
-  - calculate_growth_rate
-
-  - generate_answer
-```
-
-Planner는 SQL 생성기보다 상위 계층이다.
-
----
-
-# Multi-Hop Query Execution
-
-복잡한 질문은 여러 단계로 수행된다.
-
-```text
-Question
-
-↓
-
-Find KPI Definition
-
-↓
-
-Generate SQL
-
-↓
-
-Execute Query
-
-↓
-
-Retrieve Supporting Documents
-
-↓
-
-Calculate Derived Metrics
-
-↓
-
-Generate Answer
-```
-
-이를 Multi-Hop Query Execution이라 부른다.
-
----
-
-# Query Execution Sequence
+# Query Flow
 
 ```mermaid
 sequenceDiagram
 
 actor User
 
-participant Orchestrator
-
 participant Planner
 
 participant Catalog
 
-participant SQLAgent
+participant SQL
 
-participant RAGAgent
+participant RAG
 
 participant Synthesizer
 
-User->>Orchestrator: Natural Language Question
-
-Orchestrator->>Planner: Analyze Intent
+User->>Planner: Natural Language Question
 
 Planner->>Catalog: Semantic Lookup
 
-Catalog-->>Planner: Entities Metrics Rules
+Catalog-->>Planner: Metric Definitions
 
-Planner->>SQLAgent: Structured Query
+Planner->>SQL: Structured Query
 
-Planner->>RAGAgent: Knowledge Retrieval
+Planner->>RAG: Document Retrieval
 
-SQLAgent-->>Planner: Data Result
+SQL-->>Planner: Data
 
-RAGAgent-->>Planner: Document Result
+RAG-->>Planner: Context
 
-Planner->>Synthesizer: Merge Context
+Planner->>Synthesizer: Merge Results
 
-Synthesizer-->>User: Final Response
+Synthesizer-->>User: Final Answer
 ```
 
 ---
 
-# Knowledge Repository Structure
+# Open Knowledge Format (OKF)
+
+DQE uses OKF (Open Knowledge Format) as its semantic layer.
+
+OKF stores:
+
+* Entities
+* Metrics
+* Business Rules
+* Domain Glossaries
+* Query Templates
+* Agent Prompts
+
+Example:
+
+```yaml
+entity: Order
+
+description: Customer Orders
+
+columns:
+
+  order_id:
+    description: Order Identifier
+
+  total_amount:
+    description: Total Purchase Amount
+
+metrics:
+
+  monthly_sales:
+    formula: SUM(total_amount)
+```
+
+---
+
+# Repository Structure
 
 ```text
 knowledge/
@@ -403,8 +380,7 @@ knowledge/
 │
 ├── business_rules/
 │   ├── vip_customer.okf
-│   ├── refund_policy.okf
-│   └── loyalty_program.okf
+│   └── refund_policy.okf
 │
 ├── glossary/
 │   └── domain_terms.okf
@@ -414,86 +390,155 @@ knowledge/
 │   └── answer_style.okf
 │
 └── examples/
-    └── sample_queries.okf
 ```
 
 ---
 
-# Example End-to-End Query
+# Example
 
-사용자 질문
+Question:
 
 ```text
-최근 3개월 VIP 고객의 평균 구매 금액은?
+What is the average purchase amount of VIP customers
+during the last 3 months?
 ```
 
-Planner
+Execution Plan:
 
 ```yaml
 1. Load VIP definition
 2. Generate SQL
-3. Execute query
-4. Aggregate average purchase
-5. Generate explanation
+3. Execute SQL
+4. Aggregate result
+5. Generate answer
 ```
 
-SQL
+Generated SQL:
 
 ```sql
-SELECT
-AVG(total_purchase)
+SELECT AVG(total_purchase)
 FROM customers
 WHERE total_purchase > 1000000
 AND purchase_date >= DATE('now','-3 month');
 ```
 
-Response
+Response:
 
 ```text
-최근 3개월 VIP 고객의 평균 구매 금액은
-1,253,000원입니다.
-VIP 고객은 누적 구매 금액이 100만원 이상인 고객으로 정의됩니다.
+The average purchase amount of VIP customers
+during the last 3 months is 1,253,000 KRW.
 ```
 
 ---
 
-# Future Roadmap
+# Supported LLM Providers
 
-Phase 1
+| Provider | Status  |
+| -------- | ------- |
+| Qwen 2.5 | ✅       |
+| Qwen 3.5 | ✅       |
+| Gemini   | ✅       |
+| Claude   | ✅       |
+| OpenAI   | Planned |
 
-Text-to-SQL + RAG Integration
+---
 
-Phase 2
+# Evaluation Framework
+
+Metrics:
+
+* Exact Match (SQL)
+* Execution Accuracy
+* Latency
+* Token Cost
+* GPU Memory Usage
+
+```text
+Question
+
+↓
+
+LLM
+
+↓
+
+Generated SQL
+
+↓
+
+Execution
+
+↓
+
+Metrics
+```
+
+---
+
+# Roadmap
+
+## Phase 1
+
+Text-to-SQL
+
+RAG
+
+SQLite
+
+## Phase 2
 
 Knowledge Catalog
 
+Business Rules
+
 Semantic Layer
 
-Business Rule Engine
+## Phase 3
 
-Phase 3
-
-Agentic Query Planning
+Agentic Query Planner
 
 Execution Graph
 
 Multi-Hop Reasoning
 
-Phase 4
+## Phase 4
 
 Knowledge Graph
 
-Self-Evolving Knowledge Base
-
 Decision Memory
-
-Design Memory
 
 Engineering Memory
 
-Phase 5
+Design Memory
 
-Knowledge Operating System (KOS)
+## Phase 5
 
+Knowledge Operating System
+
+Self-Evolving Knowledge Base
+
+---
+
+# Long-Term Vision
+
+DQE is not just another Text-to-SQL system.
+
+It is an attempt to build:
+
+```text
+Database
+
+↓
+
+Knowledge Catalog
+
+↓
+
+Knowledge Graph
+
+↓
+
+Knowledge Operating System
 ```
-```
+
+where knowledge itself becomes executable.
